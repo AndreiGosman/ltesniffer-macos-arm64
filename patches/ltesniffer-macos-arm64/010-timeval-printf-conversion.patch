@@ -1,0 +1,163 @@
+From 38e6f038107154862cefbd92c3817ff3a967e672 Mon Sep 17 00:00:00 2001
+From: Andrei Gosman <andrei.gosman@gmail.com>
+Date: Sat, 3 Oct 2026 15:13:47 +0300
+Subject: [PATCH 10/10] common: match the printf conversion to the timeval
+ field types
+
+The timeval fields are printed with the long conversion throughout. That holds
+on glibc, where suseconds_t is long, but not on Darwin, where time_t is 64 bit
+and suseconds_t is 32 bit. Reading a 32 bit argument as a long takes whatever
+sits beside it, so every microsecond field carries rubbish in its upper half.
+
+In dci.csv the timestamp came out as 1791021297.4295804271, where the real
+microsecond value is 4295804271 modulo 2^32, that is 836975. The statistics
+file, the blind search timer and the stopwatch have the same defect.
+
+Cast both fields to long at the call so the argument matches the conversion.
+The cast is a no-op where the types are already long.
+
+The copy in falcon_ue_dl.c.orig is left alone. It is not compiled.
+---
+ lib/src/phy/falcon_phch/falcon_dci.c | 8 ++++----
+ lib/src/phy/falcon_ue/falcon_ue_dl.c | 6 +++---
+ lib/src/prof/Stopwatch.cc            | 3 ++-
+ src/src/PhyCommon.cc                 | 4 ++--
+ src/src/SubframeInfoConsumer.cc      | 8 ++++----
+ 5 files changed, 15 insertions(+), 14 deletions(-)
+
+diff --git a/lib/src/phy/falcon_phch/falcon_dci.c b/lib/src/phy/falcon_phch/falcon_dci.c
+index 245962f..29b19c0 100644
+--- a/lib/src/phy/falcon_phch/falcon_dci.c
++++ b/lib/src/phy/falcon_phch/falcon_dci.c
+@@ -237,7 +237,7 @@ int srsran_dci_msg_to_trace_timestamp(srsran_dci_msg_t *msg,
+             fprintf(dci_file, "%ld.%06ld\t%04d\t%d\t%d\t0\t"
+                             "%d\t%d\t%d\t%d\t%d\t"
+                             "0\t%d\t-1\t%d\t"
+-                            "%d\t%d\t%d\t%d\t%d\t%s\n", timestamp.tv_sec, timestamp.tv_usec, sfn, sf_idx, msg_rnti,
++                            "%d\t%d\t%d\t%d\t%d\t%s\n", (long)timestamp.tv_sec, (long)timestamp.tv_usec, sfn, sf_idx, msg_rnti,
+                     ul_grant->mcs.idx, ul_grant->L_prb, ul_grant->mcs.tbs, -1, -1,
+                     container->ul_dci->ndi, (10*sfn+sf_idx)%8,
+                     ncce, aggregation, cfi, histval, msg->nof_bits, hex_str);
+@@ -248,7 +248,7 @@ int srsran_dci_msg_to_trace_timestamp(srsran_dci_msg_t *msg,
+             fprintf(dci_file, "%ld.%06ld\t%04d\t%d\t%d\t0\t"
+                             "%d\t%d\t%d\t%d\t%d\t"
+                             "0\t%d\t-1\t%d\t"
+-                            "%d\t%d\t%d\t%d\t%d\t%s\n", timestamp.tv_sec, timestamp.tv_usec, sfn, sf_idx, msg_rnti,
++                            "%d\t%d\t%d\t%d\t%d\t%s\n", (long)timestamp.tv_sec, (long)timestamp.tv_usec, sfn, sf_idx, msg_rnti,
+                     ul_grant->mcs.idx, ul_grant->L_prb, 0, -1, -1,
+                     container->ul_dci->ndi, (10*sfn+sf_idx)%8,
+                     ncce, aggregation, cfi, histval, msg->nof_bits, hex_str);
+@@ -321,7 +321,7 @@ int srsran_dci_msg_to_trace_timestamp(srsran_dci_msg_t *msg,
+           fprintf(dci_file, "%ld.%06ld\t%04d\t%d\t%d\t1\t"
+                           "%d\t%d\t%d\t%d\t%d\t"
+                           "%d\t%d\t%d\t%d\t"
+-                          "%d\t%d\t%d\t%d\t%d\t%s\n", timestamp.tv_sec, timestamp.tv_usec, sfn, sf_idx, msg_rnti,
++                          "%d\t%d\t%d\t%d\t%d\t%s\n", (long)timestamp.tv_sec, (long)timestamp.tv_usec, sfn, sf_idx, msg_rnti,
+                   dl_grant->mcs[0].idx, dl_grant->nof_prb, dl_grant->mcs[0].tbs, -1, -1,
+               msg->format+1, dl_dci->ndi, -1, dl_dci->harq_process,
+               ncce, aggregation, cfi, histval, msg->nof_bits, hex_str);
+@@ -334,7 +334,7 @@ int srsran_dci_msg_to_trace_timestamp(srsran_dci_msg_t *msg,
+           fprintf(dci_file, "%ld.%06ld\t%04d\t%d\t%d\t1\t"
+                           "%d\t%d\t%d\t%d\t%d\t"
+                           "%d\t%d\t%d\t%d\t"
+-                          "%d\t%d\t%d\t%d\t%d\t%s\n", timestamp.tv_sec, timestamp.tv_usec, sfn, sf_idx, msg_rnti,
++                          "%d\t%d\t%d\t%d\t%d\t%s\n", (long)timestamp.tv_sec, (long)timestamp.tv_usec, sfn, sf_idx, msg_rnti,
+                   dl_grant->mcs[0].idx, dl_grant->nof_prb, dl_grant->mcs[0].tbs + dl_grant->mcs[1].tbs, dl_grant->mcs[0].tbs, dl_grant->mcs[1].tbs,
+               msg->format+1, dl_dci->ndi, dl_dci->ndi_1, dl_dci->harq_process,
+               ncce, aggregation, cfi, histval, msg->nof_bits, hex_str);
+diff --git a/lib/src/phy/falcon_ue/falcon_ue_dl.c b/lib/src/phy/falcon_ue/falcon_ue_dl.c
+index b7b7293..ceaa469 100644
+--- a/lib/src/phy/falcon_ue/falcon_ue_dl.c
++++ b/lib/src/phy/falcon_ue/falcon_ue_dl.c
+@@ -312,8 +312,8 @@ void srsran_ue_dl_stats_print(falcon_ue_dl_t *q, FILE* f) {
+           s->nof_subframes,
+           s->nof_subframe_collisions_dw,
+           s->nof_subframe_collisions_up,
+-          s->time_blindsearch.tv_sec,
+-          s->time_blindsearch.tv_usec,
++          (long)s->time_blindsearch.tv_sec,
++          (long)s->time_blindsearch.tv_usec,
+           s->nof_locations);
+ 
+ }
+@@ -1126,7 +1126,7 @@ int srsran_ue_dl_find_dci_histogram(falcon_ue_dl_t *q,
+ 
+   gettimeofday(&t[2], NULL);
+   get_time_interval(t);
+-  if (t[0].tv_usec > 800) printf("SF Scan took: %ld us\n", t[0].tv_usec);
++  if (t[0].tv_usec > 800) printf("SF Scan took: %ld us\n", (long)t[0].tv_usec);
+ 
+   /* disabled validation loop
+   for (int i=0;i<nof_locations;i++) {
+diff --git a/lib/src/prof/Stopwatch.cc b/lib/src/prof/Stopwatch.cc
+index 93e1d9b..d9a88d7 100644
+--- a/lib/src/prof/Stopwatch.cc
++++ b/lib/src/prof/Stopwatch.cc
+@@ -47,7 +47,8 @@ timeval Stopwatch::getAndContinue() const {
+ std::string Stopwatch::toString(timeval t) {
+   const size_t buf_sz = 20;
+   char strbuf[buf_sz] = {0};
+-  snprintf(strbuf, buf_sz, "%ld.%06ld", t.tv_sec, t.tv_usec);
++  snprintf(strbuf, buf_sz, "%ld.%06ld",
++           static_cast<long>(t.tv_sec), static_cast<long>(t.tv_usec));
+   strbuf[buf_sz-1] = 0; //prevent buffer overflows
+   return std::string(strbuf);
+ }
+diff --git a/src/src/PhyCommon.cc b/src/src/PhyCommon.cc
+index f8c79b3..f3b9d56 100644
+--- a/src/src/PhyCommon.cc
++++ b/src/src/PhyCommon.cc
+@@ -108,8 +108,8 @@ void DCIBlindSearchStats::print(FILE* file) {
+           nof_subframes,
+           nof_subframe_collisions_dw,
+           nof_subframe_collisions_up,
+-          time_blindsearch.tv_sec,
+-          time_blindsearch.tv_usec,
++          static_cast<long>(time_blindsearch.tv_sec),
++          static_cast<long>(time_blindsearch.tv_usec),
+           nof_locations);
+ }
+ 
+diff --git a/src/src/SubframeInfoConsumer.cc b/src/src/SubframeInfoConsumer.cc
+index e9e45c3..a0f56b6 100644
+--- a/src/src/SubframeInfoConsumer.cc
++++ b/src/src/SubframeInfoConsumer.cc
+@@ -84,7 +84,7 @@ void DCIToFile::printDCICollection(const SubframeInfo& subframeInfo) const {
+                 "%d\t%d\t%d\t%d\t%d\t"
+                 "%d\t%d\t%d\t%d\t"
+                 "%d\t%d\t%d\t%d\t%d\t%s\n",
+-                timestamp.tv_sec, timestamp.tv_usec, collection.get_sfn(), collection.get_sf_idx(), dci->rnti,
++                static_cast<long>(timestamp.tv_sec), static_cast<long>(timestamp.tv_usec), collection.get_sfn(), collection.get_sf_idx(), dci->rnti,
+                 dci->dl_grant->mcs[0].idx, dci->dl_grant->nof_prb, dci->dl_grant->mcs[0].tbs, -1, -1,
+                 dci->format+1, dci->dl_dci_unpacked->ndi, -1, dci->dl_dci_unpacked->harq_process,
+                 dci->location.ncce, dci->location.L, collection.get_cfi(), dci->histval, dci->nof_bits, dci->hex.c_str());
+@@ -97,7 +97,7 @@ void DCIToFile::printDCICollection(const SubframeInfo& subframeInfo) const {
+                 "%d\t%d\t%d\t%d\t%d\t"
+                 "%d\t%d\t%d\t%d\t"
+                 "%d\t%d\t%d\t%d\t%d\t%s\n",
+-                timestamp.tv_sec, timestamp.tv_usec, collection.get_sfn(), collection.get_sf_idx(), dci->rnti,
++                static_cast<long>(timestamp.tv_sec), static_cast<long>(timestamp.tv_usec), collection.get_sfn(), collection.get_sf_idx(), dci->rnti,
+                 dci->dl_grant->mcs[0].idx, dci->dl_grant->nof_prb, dci->dl_grant->mcs[0].tbs + dci->dl_grant->mcs[1].tbs, dci->dl_grant->mcs[0].tbs, dci->dl_grant->mcs[1].tbs,
+                 dci->format+1, dci->dl_dci_unpacked->ndi, dci->dl_dci_unpacked->ndi_1, dci->dl_dci_unpacked->harq_process,
+                 dci->location.ncce, dci->location.L, collection.get_cfi(), dci->histval, dci->nof_bits, dci->hex.c_str());
+@@ -118,7 +118,7 @@ void DCIToFile::printDCICollection(const SubframeInfo& subframeInfo) const {
+               "%d\t%d\t%d\t%d\t%d\t"
+               "0\t%d\t-1\t%d\t"
+               "%d\t%d\t%d\t%d\t%d\t%s\n",
+-              timestamp.tv_sec, timestamp.tv_usec, collection.get_sfn(), collection.get_sf_idx(), dci->rnti,
++              static_cast<long>(timestamp.tv_sec), static_cast<long>(timestamp.tv_usec), collection.get_sfn(), collection.get_sf_idx(), dci->rnti,
+               dci->ul_grant->mcs.idx, dci->ul_grant->L_prb, dci->ul_grant->mcs.tbs, -1, -1,
+               dci->ul_dci_unpacked->ndi, (10*collection.get_sfn()+collection.get_sf_idx())%8,
+               dci->location.ncce, dci->location.L, collection.get_cfi(), dci->histval, dci->nof_bits, dci->hex.c_str());
+@@ -129,7 +129,7 @@ void DCIToFile::printDCICollection(const SubframeInfo& subframeInfo) const {
+               "%d\t%d\t%d\t%d\t%d\t"
+               "0\t%d\t-1\t%d\t"
+               "%d\t%d\t%d\t%d\t%d\t%s\n",
+-              timestamp.tv_sec, timestamp.tv_usec, collection.get_sfn(), collection.get_sf_idx(), dci->rnti,
++              static_cast<long>(timestamp.tv_sec), static_cast<long>(timestamp.tv_usec), collection.get_sfn(), collection.get_sf_idx(), dci->rnti,
+               dci->ul_grant->mcs.idx, dci->ul_grant->L_prb, 0, -1, -1,
+               dci->ul_dci_unpacked->ndi, (10*collection.get_sfn()+collection.get_sf_idx())%8,
+               dci->location.ncce, dci->location.L, collection.get_cfi(), dci->histval, dci->nof_bits, dci->hex.c_str());
+-- 
+2.55.0
+

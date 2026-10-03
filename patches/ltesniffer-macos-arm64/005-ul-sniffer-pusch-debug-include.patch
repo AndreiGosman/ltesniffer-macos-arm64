@@ -1,7 +1,7 @@
 From 99c2c6b99a46e888ca6c1587c5dfbc3495a231b7 Mon Sep 17 00:00:00 2001
 From: Andrei Gosman <andrei.gosman@gmail.com>
 Date: Fri, 2 Oct 2026 18:10:00 +0300
-Subject: [PATCH 5/9] falcon: include the srsran debug header for ERROR in
+Subject: [PATCH 05/10] falcon: include the srsran debug header for ERROR in
  ul_sniffer_pusch
 
 ul_sniffer_pusch.c calls ERROR without including srsran/phy/utils/debug.h, which

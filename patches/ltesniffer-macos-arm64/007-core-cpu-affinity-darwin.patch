@@ -1,7 +1,7 @@
 From 8f0ee717599b58be1eb14a597d48eaf221e2f24c Mon Sep 17 00:00:00 2001
 From: Andrei Gosman <andrei.gosman@gmail.com>
 Date: Fri, 2 Oct 2026 18:10:00 +0300
-Subject: [PATCH 7/9] core: no thread affinity on Darwin
+Subject: [PATCH 07/10] core: no thread affinity on Darwin
 
 run() sets the main thread's CPU affinity with cpu_set_t, CPU_SET and
 pthread_setaffinity_np, all Linux extensions absent on Darwin. Guard the block
