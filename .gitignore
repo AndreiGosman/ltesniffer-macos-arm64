@@ -7,3 +7,8 @@ build/
 *.csv
 *.iq
 .DS_Store
+examples/run/
+examples/helpers/zmq_zeros_rep
+examples/helpers/zmq_dl_fanout
+examples/helpers/zmq_ul_fanout
+!examples/cfg/user_db.csv

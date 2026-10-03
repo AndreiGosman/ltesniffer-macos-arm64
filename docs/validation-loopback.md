@@ -30,7 +30,35 @@ a sustained C-RNTI, and an assigned IP. Listening passively, LTESniffer:
 Every value cross-checked against the ground truth in the srsRAN logs: the
 C-RNTI and the TMSI matched. All identities were the test UE's own.
 
+The topology and result above are the downlink sniffer.
+
+## Uplink
+
+The uplink decode is validated with a second fan-out and a two-channel receiver.
+The main-branch uplink path uses one device with two RX channels: channel 0 on
+the downlink frequency, channel 1 on the uplink frequency. It does not use the
+multi-USRP GPSDO synchronisation; on the loopback the two channels are already
+sample aligned by the flow-control lockstep, so no GPSDO is needed.
+
+- The DL fan-out feeds srsenb's downlink to srsue and to LTESniffer channel 0.
+- A second, UL fan-out feeds srsue's uplink to srsenb's receiver and to
+  LTESniffer channel 1. It is the same generic tee with the uplink ports.
+- LTESniffer runs in uplink mode with two ZeroMQ channels, for example:
+  `-A 2 -m 1 -f 1815000000 -u 1720000000 -a "rx_port0=...2201,rx_port1=...2301,..."`.
+- The flow-control barrier now spans four parties (srsenb, srsue, and the two
+  LTESniffer channels). It held across the run with no loss of lockstep.
+
+Listening passively on both channels, LTESniffer tuned the uplink receiver to the
+uplink frequency, decoded the uplink grants (DCI format 0) for the UE's C-RNTI,
+produced an uplink-mode MAC pcap, and mapped the C-RNTI to the UE's TMSI read
+from the RRC Connection Reconfiguration. The uplink grants cross-checked against
+the UE's PUSCH activity in the srsRAN logs; the C-RNTI and TMSI matched.
+
 ## What this does not show
 
-The loopback uses a synthetic signal and a test SIM. It validates decode and the
-identity mapping, not real-world radio performance.
+The loopback uses a synthetic signal and a test SIM. It validates the decode
+code and the identity mapping, not real-world radio performance. For the uplink
+it validates the decode path and the two-channel handling, not the GPSDO
+synchronisation, the over-the-air timing, or the real uplink power of a UE.
+Over-the-air uplink capture stays gated on a second SDR, a GPSDO, and
+authorisation.

@@ -18,7 +18,10 @@ which is srsRAN 21.10 (the 4G line). This kit therefore ports two trees:
 - srsRAN2 21.10: the PHY, common, RF and upper layers that LTESniffer links.
 - LTESniffer itself: the FALCON-derived analysis layer and the CLI.
 
-The port covers the command-line downlink sniffer. The Qt GUI is not built.
+The port covers the command-line sniffer in both downlink and uplink modes. The
+uplink decode (DCI format 0 grants, PUSCH, and the identity mapping on the
+uplink) is built into the binary and validated on a ZeroMQ loopback. The Qt GUI
+is not built.
 
 ## Requirements
 
@@ -48,11 +51,18 @@ Run the binary with no arguments to print the usage and the active RF plugins.
 
 ## Honest boundary
 
-This is a passive downlink sniffer. Without a SIM and an active connection, a
+This is a passive sniffer. It decodes the downlink and uplink control and data
+channels and the identity layer. Without a SIM and an active connection, a
 passive receiver does not give real UE throughput, real uplink power, handover
 as the UE experiences it, or QoS. It gives the scanner and the passive observer
-of the control channel and of identities. Uplink sniffing needs a second SDR and
-a GPSDO for a shared time reference, and is not built by this kit.
+of the control channel and of identities.
+
+The uplink decode is built and loopback-validated, but over-the-air uplink
+capture is gated on hardware and authorisation: it needs a second SDR and a
+GPSDO for a shared time reference. The multi-USRP GPSDO synchronisation module
+(the `ENABLE_MEAS` path, which pulls the CMNALIB dependency) is not included in
+this kit; it is only needed for two separate physical SDRs and can be validated
+only on that hardware.
 
 ## Attribution and licence
 
