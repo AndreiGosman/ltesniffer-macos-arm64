@@ -1,0 +1,30 @@
+LTESniffer macOS ARM64 port kit
+===============================
+
+This kit contains patch series and build scripts that port LTESniffer and its
+srsRAN radio stack to macOS on Apple Silicon (ARM64). It does not redistribute
+upstream source; scripts/install.sh clones the pinned upstream commits and
+applies the patches.
+
+Upstream projects and their authors:
+
+- LTESniffer
+  SysSec, Korea Advanced Institute of Science and Technology (KAIST).
+  https://github.com/SysSec-KAIST/LTESniffer
+  Pinned commit: a694803082017ac2b349e6b113940e8b9ba2fe5b
+  Licence: GNU Affero General Public License v3.0 (AGPL-3.0).
+
+- srsRAN2 (the srsRAN 21.10 fork that LTESniffer builds its radio stack from)
+  https://github.com/ShaoPaoLao/srsRAN2
+  Pinned commit: 0acc79d3fe5b153a18b62e8ef5af1a0fb2327a18
+  Licence: GNU Affero General Public License v3.0 (AGPL-3.0).
+
+- srsRAN
+  Software Radio Systems. https://www.srsran.com
+
+The patches in this kit modify AGPL-3.0 licensed code. They are therefore
+distributed under the same licence, AGPL-3.0. See the LICENSE file for the full
+text. The patch authorship is recorded in the From lines of the patch files.
+
+The standard srsRAN test identifiers used in the loopback validation
+(IMSI 001010000000001, PLMN 001/01) are public test values from srsRAN.

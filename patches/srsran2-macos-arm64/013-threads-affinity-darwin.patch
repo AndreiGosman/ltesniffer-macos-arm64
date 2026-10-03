@@ -1,0 +1,82 @@
+From a5c43e65744f92504067dd8cb3c76e2f343e7481 Mon Sep 17 00:00:00 2001
+From: Andrei Gosman <andrei.gosman@gmail.com>
+Date: Fri, 2 Oct 2026 15:00:00 +0300
+Subject: [PATCH 13/13] common: no thread affinity on Darwin
+
+cpu_set_t, the CPU_* macros and pthread_attr_setaffinity_np/getaffinity_np are
+Linux extensions. Darwin has no mask-based affinity: THREAD_AFFINITY_POLICY is
+an advisory hint, not a pin. Guard the affinity request and its reporting with
+__linux__ so the request is dropped rather than faked, and a caller asking for a
+core is not told it succeeded.
+---
+ lib/src/common/threads.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/lib/src/common/threads.c b/lib/src/common/threads.c
+index a56df78..dd0b453 100644
+--- a/lib/src/common/threads.c
++++ b/lib/src/common/threads.c
+@@ -53,7 +53,9 @@ bool threads_new_rt_cpu(pthread_t* thread, void* (*start_routine)(void*), void*
+ 
+   pthread_attr_t     attr;
+   struct sched_param param;
++#ifdef __linux__
+   cpu_set_t          cpuset;
++#endif
+   bool               attr_enable = false;
+ 
+ #ifdef PER_THREAD_PRIO
+@@ -124,6 +126,10 @@ bool threads_new_rt_cpu(pthread_t* thread, void* (*start_routine)(void*), void*
+       fprintf(stderr, "Error not enough privileges to set Scheduling priority\n");
+     }
+   }
++#ifdef __linux__
++  // cpu_set_t, the CPU_* macros and pthread_attr_setaffinity_np are Linux
++  // extensions. Darwin has no mask-based affinity (THREAD_AFFINITY_POLICY is an
++  // advisory hint, not a pin), so the request is dropped rather than faked.
+   if (cpu > 0) {
+     if (cpu > 50) {
+       uint32_t mask;
+@@ -144,6 +150,9 @@ bool threads_new_rt_cpu(pthread_t* thread, void* (*start_routine)(void*), void*
+       perror("pthread_attr_setaffinity_np");
+     }
+   }
++#else
++  (void)cpu;
++#endif
+ 
+ // TSAN seems to have issues with thread attributes when running as normal user, disable them in that case
+ #if HAVE_TSAN
+@@ -178,7 +187,9 @@ bool threads_new_rt_cpu(pthread_t* thread, void* (*start_routine)(void*), void*
+ void threads_print_self()
+ {
+   pthread_t          thread;
++#ifdef __linux__
+   cpu_set_t          cpuset;
++#endif
+   struct sched_param param;
+   int                policy;
+   const char*        p;
+@@ -186,6 +197,9 @@ void threads_print_self()
+ 
+   thread = pthread_self();
+ 
++#ifdef __linux__
++  // Affinity reporting is compiled out on Darwin for the same reason: there is
++  // no mask-based affinity to read back.
+   s = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+   if (s != 0) {
+     printf("error pthread_getaffinity_np: %s\n", strerror(s));
+@@ -197,6 +211,9 @@ void threads_print_self()
+       printf("    CPU %d\n", j);
+     }
+   }
++#else
++  (void)j;
++#endif
+ 
+   s = pthread_getschedparam(thread, &policy, &param);
+   if (s != 0) {
+-- 
+2.55.0
+

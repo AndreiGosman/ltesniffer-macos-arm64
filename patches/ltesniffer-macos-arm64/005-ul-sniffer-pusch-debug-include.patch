@@ -1,0 +1,28 @@
+From 99c2c6b99a46e888ca6c1587c5dfbc3495a231b7 Mon Sep 17 00:00:00 2001
+From: Andrei Gosman <andrei.gosman@gmail.com>
+Date: Fri, 2 Oct 2026 18:10:00 +0300
+Subject: [PATCH 5/9] falcon: include the srsran debug header for ERROR in
+ ul_sniffer_pusch
+
+ul_sniffer_pusch.c calls ERROR without including srsran/phy/utils/debug.h, which
+defines it. On glibc builds it arrived transitively; here it does not, so clang
+treats ERROR as an implicit function. Include the header directly.
+---
+ lib/src/phy/falcon_phch/ul_sniffer_pusch.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/lib/src/phy/falcon_phch/ul_sniffer_pusch.c b/lib/src/phy/falcon_phch/ul_sniffer_pusch.c
+index d0cca1b..d098b65 100644
+--- a/lib/src/phy/falcon_phch/ul_sniffer_pusch.c
++++ b/lib/src/phy/falcon_phch/ul_sniffer_pusch.c
+@@ -4,6 +4,7 @@
+  */
+ 
+ #include "falcon/phy/falcon_phch/ul_sniffer_pusch.h"
++#include "srsran/phy/utils/debug.h"
+ static const int tbs_table_32A[110] = 
+     /* Implementation of Index 32A for uplink pusch, table Table 7.1.7.2.1-1 36.213 v15 */
+     {904 , 1864 , 2792 , 3752 , 4584 , 5544 , 6456 , 7480 , 8248 , 9144 , 10296, 11064, 12216, 12960,
+-- 
+2.55.0
+

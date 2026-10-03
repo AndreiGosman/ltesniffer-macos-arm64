@@ -1,0 +1,30 @@
+From ba67708cd9e17fd9caea6c50ae954ce02f063ff3 Mon Sep 17 00:00:00 2001
+From: Andrei Gosman <andrei.gosman@gmail.com>
+Date: Fri, 2 Oct 2026 19:00:00 +0300
+Subject: [PATCH 9/9] worker: enable the per-subframe DCI-to-file consumer
+
+The call that feeds the -D DCI file, common.consumeDCICollection(subframeInfo),
+was commented out upstream, so -D always produced an empty file even though the
+DCIs were decoded (the stats and the 256-tracking use a separate path). Enable
+it so -D records one row per decoded DCI (SI-RNTI broadcast and per-UE C-RNTI),
+which is what the ground-truth cross-check against the eNB needs.
+---
+ src/src/SubframeWorker.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/src/SubframeWorker.cc b/src/src/SubframeWorker.cc
+index c533548..bdbd968 100644
+--- a/src/src/SubframeWorker.cc
++++ b/src/src/SubframeWorker.cc
+@@ -202,7 +202,7 @@ void SubframeWorker::work()
+   /*Update CFO for ue_sync in sync thread*/
+   est_cfo = falcon_ue_dl.q->chest_res.cfo;
+   falcon_ue_dl.q->chest_res.cfo = 0;
+-  // common.consumeDCICollection(subframeInfo); //save DCI to file
++  common.consumeDCICollection(subframeInfo); // save DCI to file (-D); upstream left this disabled
+   // print_nof_DCI(subframeInfo, tti);
+ }
+ 
+-- 
+2.55.0
+

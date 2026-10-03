@@ -1,0 +1,27 @@
+From 8e305c0489b3a7d7dbdcff2469ef7883bc42e4e2 Mon Sep 17 00:00:00 2001
+From: Andrei Gosman <andrei.gosman@gmail.com>
+Date: Fri, 2 Oct 2026 15:00:00 +0300
+Subject: [PATCH 05/13] build: raise cmake_minimum_required in the buildinfo
+ script
+
+SRSRANbuildinfo.cmake is generated from this template and run with cmake -P at
+build time, a sub-invocation the top-level CMAKE_POLICY_VERSION_MINIMUM does not
+reach. CMake 4 removed compatibility with the declared VERSION 2.6, so the git
+version step failed. Declare 3.5.
+---
+ cmake/modules/SRSRANbuildinfo.cmake.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/cmake/modules/SRSRANbuildinfo.cmake.in b/cmake/modules/SRSRANbuildinfo.cmake.in
+index 8cbea73..474c522 100644
+--- a/cmake/modules/SRSRANbuildinfo.cmake.in
++++ b/cmake/modules/SRSRANbuildinfo.cmake.in
+@@ -1,4 +1,4 @@
+-cmake_minimum_required(VERSION 2.6)
++cmake_minimum_required(VERSION 3.5)
+ 
+ execute_process(
+ COMMAND git rev-parse --abbrev-ref HEAD
+-- 
+2.55.0
+

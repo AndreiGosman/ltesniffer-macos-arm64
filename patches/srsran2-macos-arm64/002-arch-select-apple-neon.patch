@@ -1,0 +1,57 @@
+From 766286d80cdf5b4c960ffcd126be462d4ebe39c4 Mon Sep 17 00:00:00 2001
+From: Andrei Gosman <andrei.gosman@gmail.com>
+Date: Fri, 2 Oct 2026 12:00:00 +0300
+Subject: [PATCH 2/3] phy: select NEON unconditionally on Apple Silicon
+
+arch_select re-execs the binary with an isa suffix chosen at runtime. On
+ARM it probes getauxval(AT_HWCAP) from <sys/auxv.h> and <asm/hwcap.h>,
+neither of which exists on Darwin. Apple Silicon is ARMv8 and always has
+NEON, so the capability is a compile-time constant. Return "neon"
+directly on __APPLE__ and drop the Linux-only hwcap includes there.
+---
+ lib/src/common/arch_select.cc | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/lib/src/common/arch_select.cc b/lib/src/common/arch_select.cc
+index aa320f8..d294873 100644
+--- a/lib/src/common/arch_select.cc
++++ b/lib/src/common/arch_select.cc
+@@ -26,10 +26,16 @@
+ #include <unistd.h>
+ 
+ #ifdef IS_ARM
++#ifdef __APPLE__
++// Apple Silicon is ARMv8 and always provides NEON. Darwin has no getauxval,
++// no <sys/auxv.h> and no <asm/hwcap.h>; the hardware capability is a constant,
++// so the runtime probe below is replaced by an unconditional "neon".
++#else
+ #include <asm/hwcap.h>
+ #include <stdio.h>
+ #include <sys/auxv.h>
+ #define USER_HWCAP_NEON (1 << 12)
++#endif
+ #else
+ #include <cpuid.h>
+ #define X86_CPUID_BASIC_LEAF 1
+@@ -93,6 +99,10 @@ const char* x86_get_isa()
+ #ifdef IS_ARM
+ const char* arm_get_isa()
+ {
++#ifdef __APPLE__
++  // Apple Silicon always has NEON; no runtime probe is possible or needed.
++  return "neon";
++#else
+ #ifdef HAVE_NEONv8
+   if (getauxval(AT_HWCAP) & USER_HWCAP_NEON) {
+ #else
+@@ -102,6 +112,7 @@ const char* arm_get_isa()
+   } else {
+     return "generic";
+   }
++#endif
+ }
+ #endif
+ 
+-- 
+2.55.0
+

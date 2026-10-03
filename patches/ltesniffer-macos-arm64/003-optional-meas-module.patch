@@ -1,0 +1,98 @@
+From 883440059e99bc1ab970f6e7cdbd34ecd72355a1 Mon Sep 17 00:00:00 2001
+From: Andrei Gosman <andrei.gosman@gmail.com>
+Date: Fri, 2 Oct 2026 18:10:00 +0300
+Subject: [PATCH 3/9] build: make the measurement module optional (ENABLE_MEAS)
+
+lib/src/meas (UL/GPSDO sync) is the only consumer of CMNALIB, and the LTESniffer
+binary does not link falcon_meas. CMNALIB is otherwise downloaded and built as a
+subproject whose old cmake_minimum_required fails under CMake 4. Add ENABLE_MEAS
+(default ON) and gate both the CMNALIB dependency and the meas subdirectory on
+it, so a downlink-only CLI build needs neither.
+---
+ CMakeLists.txt         | 55 +++++++++++++++++++++++-------------------
+ lib/src/CMakeLists.txt |  4 ++-
+ 2 files changed, 33 insertions(+), 26 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d05a71e..5c21c02 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -69,31 +69,36 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
+ 
+ # Check for CMNAlib in system.
+ 
+-find_package(CMNALIB)
+-if(CMNALIB_FOUND AND NOT FORCE_SUBPROJECT_CMNALIB)
+-  include_directories(${CMNALIB_INCLUDE_DIRS})
+-  link_directories(${CMNALIB_LIBRARY_DIRS})
+-else(CMNALIB_FOUND AND NOT FORCE_SUBPROJECT_CMNALIB)
+-  message("Download CMNALIB as a subproject and build it.")
+-
+-  # Download and unpack cmnalib at configure time
+-  configure_file(external/cmake/cmnalib.CMakeLists.txt.in cmnalib-download/CMakeLists.txt)
+-  execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" .
+-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/cmnalib-download" )
+-  execute_process(COMMAND "${CMAKE_COMMAND}" --build .
+-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/cmnalib-download" )
+-
+-  include_directories("${CMAKE_BINARY_DIR}/cmnalib-src/src/cmnalib/include")
+-
+-  # Add cmnalib directly to our build.
+-  add_subdirectory("${CMAKE_BINARY_DIR}/cmnalib-src"
+-    "${CMAKE_BINARY_DIR}/cmnalib-build")
+-  set(CMNALIB_LIBRARY cmnalib)
+-  set(CMNALIB_LIBRARIES ${CMNALIB_LIBRARY})
+-endif(CMNALIB_FOUND AND NOT FORCE_SUBPROJECT_CMNALIB)
+-
+-message("CMNALIB_LIBRARY: " ${CMNALIB_LIBRARY})
+-message("CMNALIB_LIBRARIES: " ${CMNALIB_LIBRARIES})
++# The measurement module (lib/src/meas, UL/GPSDO sync) is the only consumer of
++# CMNALIB and the LTESniffer binary does not link it. Gate the whole CMNALIB
++# dependency behind ENABLE_MEAS so a downlink-only CLI build needs neither.
++if(ENABLE_MEAS)
++  find_package(CMNALIB)
++  if(CMNALIB_FOUND AND NOT FORCE_SUBPROJECT_CMNALIB)
++    include_directories(${CMNALIB_INCLUDE_DIRS})
++    link_directories(${CMNALIB_LIBRARY_DIRS})
++  else(CMNALIB_FOUND AND NOT FORCE_SUBPROJECT_CMNALIB)
++    message("Download CMNALIB as a subproject and build it.")
++
++    # Download and unpack cmnalib at configure time
++    configure_file(external/cmake/cmnalib.CMakeLists.txt.in cmnalib-download/CMakeLists.txt)
++    execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" .
++      WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/cmnalib-download" )
++    execute_process(COMMAND "${CMAKE_COMMAND}" --build .
++      WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/cmnalib-download" )
++
++    include_directories("${CMAKE_BINARY_DIR}/cmnalib-src/src/cmnalib/include")
++
++    # Add cmnalib directly to our build.
++    add_subdirectory("${CMAKE_BINARY_DIR}/cmnalib-src"
++      "${CMAKE_BINARY_DIR}/cmnalib-build")
++    set(CMNALIB_LIBRARY cmnalib)
++    set(CMNALIB_LIBRARIES ${CMNALIB_LIBRARY})
++  endif(CMNALIB_FOUND AND NOT FORCE_SUBPROJECT_CMNALIB)
++
++  message("CMNALIB_LIBRARY: " ${CMNALIB_LIBRARY})
++  message("CMNALIB_LIBRARIES: " ${CMNALIB_LIBRARIES})
++endif(ENABLE_MEAS)
+ 
+ # cmnalib also needs glib:
+ 
+diff --git a/lib/src/CMakeLists.txt b/lib/src/CMakeLists.txt
+index fc35255..cbe16d3 100644
+--- a/lib/src/CMakeLists.txt
++++ b/lib/src/CMakeLists.txt
+@@ -1,6 +1,8 @@
+ 
+ add_subdirectory(common)
+ add_subdirectory(prof)
+-add_subdirectory(meas)
++if(ENABLE_MEAS)
++  add_subdirectory(meas)
++endif(ENABLE_MEAS)
+ add_subdirectory(phy)
+ add_subdirectory(util)
+-- 
+2.55.0
+

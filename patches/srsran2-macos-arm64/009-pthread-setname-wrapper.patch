@@ -1,0 +1,55 @@
+From 3b75d81ba86c8c947b04c32f92010225e7b1a95c Mon Sep 17 00:00:00 2001
+From: Andrei Gosman <andrei.gosman@gmail.com>
+Date: Fri, 2 Oct 2026 15:00:00 +0300
+Subject: [PATCH 09/13] common: wrap pthread_setname_np for Darwin's
+ one-argument form
+
+Darwin's pthread_setname_np takes only the name and always acts on the calling
+thread; it has no thread parameter. Both call sites in threads.h name the
+calling thread, so a srsran_pthread_setname macro drops the thread argument on
+__APPLE__ and keeps the two-argument Linux form elsewhere.
+---
+ lib/include/srsran/common/threads.h | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/lib/include/srsran/common/threads.h b/lib/include/srsran/common/threads.h
+index 2f30cdb..34f8526 100644
+--- a/lib/include/srsran/common/threads.h
++++ b/lib/include/srsran/common/threads.h
+@@ -32,6 +32,15 @@
+ #endif
+ #include <unistd.h>
+ 
++#ifdef __APPLE__
++// Darwin's pthread_setname_np takes only the name and always acts on the
++// calling thread; it has no thread argument. Every call site here names the
++// calling thread (pthread_self()), so drop the thread argument on Darwin.
++#define srsran_pthread_setname(thr, name) pthread_setname_np(name)
++#else
++#define srsran_pthread_setname(thr, name) pthread_setname_np(thr, name)
++#endif
++
+ // Default priority for all threads below UHD threads
+ #define DEFAULT_PRIORITY 60
+ 
+@@ -88,7 +97,7 @@ public:
+   void set_name(const std::string& name_)
+   {
+     name = name_;
+-    pthread_setname_np(pthread_self(), name.c_str());
++    srsran_pthread_setname(pthread_self(), name.c_str());
+   }
+ 
+   void wait_thread_finish() { pthread_join(_thread, NULL); }
+@@ -112,7 +121,7 @@ protected:
+ private:
+   static void* thread_function_entry(void* _this)
+   {
+-    pthread_setname_np(pthread_self(), ((thread*)_this)->name.c_str());
++    srsran_pthread_setname(pthread_self(), ((thread*)_this)->name.c_str());
+     ((thread*)_this)->run_thread();
+     return NULL;
+   }
+-- 
+2.55.0
+

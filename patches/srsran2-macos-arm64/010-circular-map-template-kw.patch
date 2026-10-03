@@ -1,0 +1,57 @@
+From d3c4e773666720fbb40e37b3a6d949dfed52bcca Mon Sep 17 00:00:00 2001
+From: Andrei Gosman <andrei.gosman@gmail.com>
+Date: Fri, 2 Oct 2026 15:00:00 +0300
+Subject: [PATCH 10/13] adt: drop the template disambiguator clang rejects in
+ circular_map
+
+static_circular_map calls buffer[idx].template emplace(...). The element type's
+emplace is not a template, and newer clang rejects the template keyword before a
+non-template member (-Wmissing-template-arg-list-after-template-kw as a hard
+error). Remove the keyword; the call is unchanged.
+---
+ lib/include/srsran/adt/circular_map.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/lib/include/srsran/adt/circular_map.h b/lib/include/srsran/adt/circular_map.h
+index eee22a6..05d1153 100644
+--- a/lib/include/srsran/adt/circular_map.h
++++ b/lib/include/srsran/adt/circular_map.h
+@@ -130,7 +130,7 @@ public:
+   {
+     for (size_t idx = 0; idx < other.capacity(); ++idx) {
+       if (present[idx]) {
+-        buffer[idx].template emplace(other.get_obj_(idx));
++        buffer[idx].emplace(other.get_obj_(idx));
+       }
+     }
+   }
+@@ -138,7 +138,7 @@ public:
+   {
+     for (size_t idx = 0; idx < other.capacity(); ++idx) {
+       if (present[idx]) {
+-        buffer[idx].template emplace(std::move(other.get_obj_(idx)));
++        buffer[idx].emplace(std::move(other.get_obj_(idx)));
+       }
+     }
+     other.clear();
+@@ -178,7 +178,7 @@ public:
+     if (present[idx]) {
+       return false;
+     }
+-    buffer[idx].template emplace(id, obj);
++    buffer[idx].emplace(id, obj);
+     present[idx] = true;
+     count++;
+     return true;
+@@ -189,7 +189,7 @@ public:
+     if (present[idx]) {
+       return srsran::expected<iterator, T>(std::move(obj));
+     }
+-    buffer[idx].template emplace(id, std::move(obj));
++    buffer[idx].emplace(id, std::move(obj));
+     present[idx] = true;
+     count++;
+     return iterator(this, idx);
+-- 
+2.55.0
+

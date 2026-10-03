@@ -1,0 +1,93 @@
+From 648a01a4b2d2a366648f6e8caa22001386f1202f Mon Sep 17 00:00:00 2001
+From: Andrei Gosman <andrei.gosman@gmail.com>
+Date: Fri, 2 Oct 2026 17:30:00 +0300
+Subject: [PATCH 14/16] common: byte order macros for platforms without
+ endian.h
+
+mac/pdu.cc and mac/mac_sch_pdu_nr.cc use htole16/32/64 and le16/64toh without
+including anything that declares them; on glibc they arrive transitively through
+endian.h. Darwin has no endian.h. Add srsran/common/endian_compat.h mapping the
+same names onto libkern/OSByteOrder.h and include it from the two files. Not a
+bare endian.h on a shared prefix, to avoid shadowing whatever else provides it.
+---
+ lib/include/srsran/common/endian_compat.h | 42 +++++++++++++++++++++++
+ lib/src/mac/mac_sch_pdu_nr.cc             |  1 +
+ lib/src/mac/pdu.cc                        |  1 +
+ 3 files changed, 44 insertions(+)
+ create mode 100644 lib/include/srsran/common/endian_compat.h
+
+diff --git a/lib/include/srsran/common/endian_compat.h b/lib/include/srsran/common/endian_compat.h
+new file mode 100644
+index 0000000..e397989
+--- /dev/null
++++ b/lib/include/srsran/common/endian_compat.h
+@@ -0,0 +1,42 @@
++/**
++ * Byte order macros for platforms without endian.h.
++ *
++ * Copyright 2013-2023 Software Radio Systems Limited
++ * Darwin compatibility layer added 2026 by Andrei Gosman.
++ *
++ * This file is part of srsRAN. Same licence as the rest of the tree.
++ *
++ * glibc exposes htole16 and friends through endian.h, and pulls that in
++ * transitively often enough that sources here use the macros without asking
++ * for them. Darwin has no endian.h; the same conversions live in
++ * libkern/OSByteOrder.h under different names.
++ */
++
++#ifndef SRSRAN_ENDIAN_COMPAT_H
++#define SRSRAN_ENDIAN_COMPAT_H
++
++#ifdef __APPLE__
++
++#include <libkern/OSByteOrder.h>
++
++#define htole16(x) OSSwapHostToLittleInt16(x)
++#define htole32(x) OSSwapHostToLittleInt32(x)
++#define htole64(x) OSSwapHostToLittleInt64(x)
++#define le16toh(x) OSSwapLittleToHostInt16(x)
++#define le32toh(x) OSSwapLittleToHostInt32(x)
++#define le64toh(x) OSSwapLittleToHostInt64(x)
++
++#define htobe16(x) OSSwapHostToBigInt16(x)
++#define htobe32(x) OSSwapHostToBigInt32(x)
++#define htobe64(x) OSSwapHostToBigInt64(x)
++#define be16toh(x) OSSwapBigToHostInt16(x)
++#define be32toh(x) OSSwapBigToHostInt32(x)
++#define be64toh(x) OSSwapBigToHostInt64(x)
++
++#else
++
++#include <endian.h>
++
++#endif /* __APPLE__ */
++
++#endif /* SRSRAN_ENDIAN_COMPAT_H */
+diff --git a/lib/src/mac/mac_sch_pdu_nr.cc b/lib/src/mac/mac_sch_pdu_nr.cc
+index d06d7b0..c1386c2 100644
+--- a/lib/src/mac/mac_sch_pdu_nr.cc
++++ b/lib/src/mac/mac_sch_pdu_nr.cc
+@@ -19,6 +19,7 @@
+  *
+  */
+ 
++#include "srsran/common/endian_compat.h"
+ #include "srsran/mac/mac_sch_pdu_nr.h"
+ 
+ namespace srsran {
+diff --git a/lib/src/mac/pdu.cc b/lib/src/mac/pdu.cc
+index b1a05b1..7aaab62 100644
+--- a/lib/src/mac/pdu.cc
++++ b/lib/src/mac/pdu.cc
+@@ -24,6 +24,7 @@
+ #include <string.h>
+ #include <strings.h>
+ 
++#include "srsran/common/endian_compat.h"
+ #include "srsran/common/standard_streams.h"
+ #include "srsran/mac/pdu.h"
+ 
+-- 
+2.55.0
+

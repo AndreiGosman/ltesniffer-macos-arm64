@@ -1,0 +1,63 @@
+From 299247880ee1dfa926dfb1013de21be6c1e70834 Mon Sep 17 00:00:00 2001
+From: Andrei Gosman <andrei.gosman@gmail.com>
+Date: Fri, 2 Oct 2026 18:00:00 +0300
+Subject: [PATCH 16/16] build: gate tests and examples so the tree embeds as a
+ library subproject
+
+A consumer that embeds this tree with add_subdirectory (the macOS LTESniffer
+build) wants only the libraries. The test subdirectories pull
+find_package(SCTP REQUIRED) and other host-only dependencies, and the examples
+pull RF and getopt specifics. Gate the test subdirectories on the standard
+BUILD_TESTING knob and the examples on a new ENABLE_SRSRAN_EXAMPLES option
+(default ON), so a subproject can turn both off.
+---
+ CMakeLists.txt     | 9 ++++++++-
+ lib/CMakeLists.txt | 8 ++++++--
+ 2 files changed, 14 insertions(+), 3 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f30f309..d617584 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -109,6 +109,7 @@ option(ASSERTS_ENABLED       "Enable srsRAN asserts"                    ON)
+ option(STOP_ON_WARNING       "Interrupt application on warning"         OFF)
+ 
+ option(ENABLE_ALL_TEST       "Enable all unit/component test"           OFF)
++option(ENABLE_SRSRAN_EXAMPLES "Build the srsRAN example programs"        ON)
+ 
+ # Users that want to try this feature need to make sure the lto plugin is
+ # loaded by bintools (ar, nm, ...). Older versions of bintools will not do
+@@ -715,4 +716,10 @@ else(ENABLE_SRSEPC)
+   message(STATUS "srsEPC build disabled")
+ endif(ENABLE_SRSEPC)
+ 
+-add_subdirectory(test)
++# Tests pull find_package(SCTP REQUIRED) and other host-only dependencies, and
++# a consumer embedding this tree as a subproject (the macOS LTESniffer build)
++# does not want them. Gate on the standard BUILD_TESTING knob.
++if(BUILD_TESTING)
++  add_subdirectory(test)
++endif()
++
+diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
+index 29b1f2f..1bac601 100644
+--- a/lib/CMakeLists.txt
++++ b/lib/CMakeLists.txt
+@@ -23,8 +23,12 @@
+ ########################################################################
+ add_subdirectory(src)
+ add_subdirectory(include)
+-add_subdirectory(examples)
+-add_subdirectory(test)
++if(ENABLE_SRSRAN_EXAMPLES)
++  add_subdirectory(examples)
++endif()
++if(BUILD_TESTING)
++  add_subdirectory(test)
++endif()
+ 
+ ########################################################################
+ # Install library headers
+-- 
+2.55.0
+

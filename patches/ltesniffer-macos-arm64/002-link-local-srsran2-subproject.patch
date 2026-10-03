@@ -1,0 +1,73 @@
+From cdac661a051e6ce3f9c839dd8775d12c7c986577 Mon Sep 17 00:00:00 2001
+From: Andrei Gosman <andrei.gosman@gmail.com>
+Date: Fri, 2 Oct 2026 18:10:00 +0300
+Subject: [PATCH 2/9] build: link against a patched srsRAN2 passed via
+ SRSRAN_SOURCE_DIR
+
+find_package(SRSRAN) finds nothing here (srsRAN2 ships no config package and
+there is no FindSRSRAN module), so the upstream path downloads ShaoPaoLao/srsRAN2
+master and builds it in-tree. On macOS that download is unpatched and does not
+build. Replace the ExternalProject download with add_subdirectory of a local
+patched srsRAN2 tree given through the SRSRAN_SOURCE_DIR cache variable, propagate
+the library-only C++17 configuration, and skip the subproject tests and examples.
+SRSRAN_SOURCE_DIR has no default; the build fails fast if it is not passed.
+---
+ CMakeLists.txt | 36 ++++++++++++++++++++++++------------
+ 1 file changed, 24 insertions(+), 12 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 45349e4..d05a71e 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -173,24 +173,36 @@ if(SRSRAN_FOUND AND NOT FORCE_SUBPROJECT_SRSRAN)
+   link_directories(${SRSLTE_LIBRARY_DIRS})
+ else(SRSRAN_FOUND AND NOT FORCE_SUBPROJECT_SRSRAN)
+ 
+-  message("Download SRSRAN as a subproject and build it.")
++  message("macOS ARM64 port: building against the local patched srsRAN2 tree.")
++
++  # The upstream flow downloads ShaoPaoLao/srsRAN2 master and builds it in-tree.
++  # On macOS that download would be unpatched and would not build. Point the
++  # subproject at the local darwin-arm64 tree that carries the Darwin patch
++  # series instead. SRSRAN_SOURCE_DIR is the one path to de-hardcode at harvest.
++  set(SRSRAN_SOURCE_DIR "" CACHE PATH "Path to the patched srsRAN2 source tree")
++  if(NOT SRSRAN_SOURCE_DIR)
++    message(FATAL_ERROR "SRSRAN_SOURCE_DIR is not set. Pass the patched srsRAN2 clone with -DSRSRAN_SOURCE_DIR=/path/to/srsRAN2 (scripts/install.sh does this).")
++  endif()
+ 
+-  # Download and unpack srsRAN at configure time
+-  configure_file(external/cmake/srsRAN.CMakeLists.txt.in srsRAN-download/CMakeLists.txt)
+-  execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" .
+-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/srsRAN-download" )
+-  execute_process(COMMAND "${CMAKE_COMMAND}" --build .
+-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/srsRAN-download" )
++  # Propagate the library-only, C++17 configuration into the subproject so the
++  # daemons stay off and UHD's C++17 public headers compile.
++  set(ENABLE_SRSUE  OFF CACHE BOOL "" FORCE)
++  set(ENABLE_SRSENB OFF CACHE BOOL "" FORCE)
++  set(ENABLE_SRSEPC OFF CACHE BOOL "" FORCE)
++  set(SRSRAN_CXX_STANDARD "c++17" CACHE STRING "" FORCE)
++  # The sniffer needs only the srsRAN libraries. Skip its tests (which require
++  # find_package(SCTP REQUIRED)) and its example programs.
++  set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
++  set(ENABLE_SRSRAN_EXAMPLES OFF CACHE BOOL "" FORCE)
+ 
+   include_directories("${CMAKE_BINARY_DIR}/srsRAN-build/lib/include")
+-  include_directories("${CMAKE_BINARY_DIR}/srsRAN-src/lib/include")
+-  include_directories("${CMAKE_BINARY_DIR}/srsRAN-src/")
++  include_directories("${SRSRAN_SOURCE_DIR}/lib/include")
++  include_directories("${SRSRAN_SOURCE_DIR}/")
+   # let the compiler find included files from subdirectories
+   include_directories(".")
+ 
+-  # Add srsRAN directly to our build.
+-  add_subdirectory("${CMAKE_BINARY_DIR}/srsRAN-src"
+-    "${CMAKE_BINARY_DIR}/srsRAN-build")
++  # Add the patched srsRAN2 directly to our build, with its own binary dir.
++  add_subdirectory("${SRSRAN_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/srsRAN-build")
+ 
+   set(SRSRAN_LIBRARY_RF srsran_rf)
+   set(SRSRAN_LIBRARY srsran_common)
+-- 
+2.55.0
+

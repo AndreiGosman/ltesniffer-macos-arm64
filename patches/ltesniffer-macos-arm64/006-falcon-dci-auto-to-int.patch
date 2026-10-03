@@ -1,0 +1,28 @@
+From af8d508b3841d01efb6d5f164adf156e57cfe659 Mon Sep 17 00:00:00 2001
+From: Andrei Gosman <andrei.gosman@gmail.com>
+Date: Fri, 2 Oct 2026 18:10:00 +0300
+Subject: [PATCH 6/9] falcon: use int instead of auto in a C loop in falcon_dci
+
+falcon_dci.c is compiled as C and uses for (auto i = 0; ...). In C, auto is a
+storage-class specifier, so this is an implicit int that C99 and later reject.
+Name the type.
+---
+ lib/src/phy/falcon_phch/falcon_dci.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/src/phy/falcon_phch/falcon_dci.c b/lib/src/phy/falcon_phch/falcon_dci.c
+index 18ee0b6..245962f 100644
+--- a/lib/src/phy/falcon_phch/falcon_dci.c
++++ b/lib/src/phy/falcon_phch/falcon_dci.c
+@@ -631,7 +631,7 @@ void convert_ul_grant(srsran_pusch_grant_t*   ran_ul_grant,
+                       srsran_ra_ul_grant_t*   ul_grant)
+ {
+   ul_grant->freq_hopping = ran_ul_grant->freq_hopping;
+-  for (auto i = 0; i < SRSRAN_MAX_CODEWORDS; i++){
++  for (int i = 0; i < SRSRAN_MAX_CODEWORDS; i++){
+     ul_grant->n_prb[i] = ran_ul_grant->n_prb[i];
+     ul_grant->n_prb_tilde[i] = ran_ul_grant->n_prb_tilde[i];
+   }
+-- 
+2.55.0
+

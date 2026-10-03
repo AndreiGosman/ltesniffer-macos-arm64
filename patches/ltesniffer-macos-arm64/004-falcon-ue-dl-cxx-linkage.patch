@@ -1,0 +1,37 @@
+From c8dd50c4f6fab8bd8e1bc6da5fed655386e7e780 Mon Sep 17 00:00:00 2001
+From: Andrei Gosman <andrei.gosman@gmail.com>
+Date: Fri, 2 Oct 2026 18:10:00 +0300
+Subject: [PATCH 4/9] falcon: avoid C++ stdlib under extern "C" in
+ falcon_ue_dl.h
+
+The header wraps srsran/phy/ue/ue_dl.h in extern "C". Through srsran/phy/sync/
+cfo.h that reaches <complex.h>, which on libc++ (macOS) is the C++ wrapper and
+transitively pulls <sstream> and <charconv>, whose templates then fail with
+"must have C++ linkage". Include <complex> and <sstream> with C++ linkage
+before the extern "C" block; their guards make the inner re-include a no-op.
+---
+ lib/include/falcon/phy/falcon_ue/falcon_ue_dl.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/lib/include/falcon/phy/falcon_ue/falcon_ue_dl.h b/lib/include/falcon/phy/falcon_ue/falcon_ue_dl.h
+index fe2b721..9656f16 100644
+--- a/lib/include/falcon/phy/falcon_ue/falcon_ue_dl.h
++++ b/lib/include/falcon/phy/falcon_ue/falcon_ue_dl.h
+@@ -31,6 +31,14 @@
+ #include <time.h>
+ 
+ #ifdef __cplusplus
++// srsran/phy/sync/cfo.h (reached through ue_dl.h) includes <complex.h>. On
++// libc++ (macOS) that pulls the C++ <complex> and transitively <sstream> and
++// <charconv>. Pulling those under the extern "C" below makes their templates
++// fail with "templates must have C++ linkage". Include them with C++ linkage
++// first; their include guards then make the re-include inside extern "C" a
++// no-op.
++#include <complex>
++#include <sstream>
+ extern "C" {
+ #endif
+ 
+-- 
+2.55.0
+

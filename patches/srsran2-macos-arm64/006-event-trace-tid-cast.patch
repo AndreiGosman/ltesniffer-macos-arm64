@@ -1,0 +1,38 @@
+From 4f48cdcebfbdb981a82bff52524dfe68dad43ffa Mon Sep 17 00:00:00 2001
+From: Andrei Gosman <andrei.gosman@gmail.com>
+Date: Fri, 2 Oct 2026 15:00:00 +0300
+Subject: [PATCH 06/13] srslog: cast pthread_self() through uintptr_t for the
+ TID field
+
+Darwin's pthread_t is an opaque pointer, so casting it straight to unsigned
+loses information and clang rejects it. Go through uintptr_t before the
+narrowing cast the TID log field needs.
+---
+ lib/src/srslog/event_trace.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/lib/src/srslog/event_trace.cpp b/lib/src/srslog/event_trace.cpp
+index 4064996..3d7cd6c 100644
+--- a/lib/src/srslog/event_trace.cpp
++++ b/lib/src/srslog/event_trace.cpp
+@@ -104,7 +104,7 @@ void trace_duration_begin(const std::string& category, const std::string& name)
+ 
+   char fmt_time[24];
+   format_time(fmt_time, sizeof(fmt_time));
+-  (*tracer)("[%s] [TID:%0u] Entering \"%s\": %s", fmt_time, (unsigned)::pthread_self(), category, name);
++  (*tracer)("[%s] [TID:%0u] Entering \"%s\": %s", fmt_time, (unsigned)(uintptr_t)::pthread_self(), category, name);
+ }
+ 
+ void trace_duration_end(const std::string& category, const std::string& name)
+@@ -115,7 +115,7 @@ void trace_duration_end(const std::string& category, const std::string& name)
+ 
+   char fmt_time[24];
+   format_time(fmt_time, sizeof(fmt_time));
+-  (*tracer)("[%s] [TID:%0u] Leaving \"%s\": %s", fmt_time, (unsigned)::pthread_self(), category, name);
++  (*tracer)("[%s] [TID:%0u] Leaving \"%s\": %s", fmt_time, (unsigned)(uintptr_t)::pthread_self(), category, name);
+ }
+ 
+ } // namespace srslog
+-- 
+2.55.0
+
