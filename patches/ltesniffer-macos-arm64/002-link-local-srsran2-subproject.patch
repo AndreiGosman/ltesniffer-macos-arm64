@@ -1,7 +1,7 @@
 From cdac661a051e6ce3f9c839dd8775d12c7c986577 Mon Sep 17 00:00:00 2001
 From: Andrei Gosman <andrei.gosman@gmail.com>
 Date: Fri, 2 Oct 2026 18:10:00 +0300
-Subject: [PATCH 02/10] build: link against a patched srsRAN2 passed via
+Subject: [PATCH 02/11] build: link against a patched srsRAN2 passed via
  SRSRAN_SOURCE_DIR
 
 find_package(SRSRAN) finds nothing here (srsRAN2 ships no config package and

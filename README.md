@@ -49,6 +49,11 @@ commits, so a later upstream change does not move the base.
 
 Run the binary with no arguments to print the usage and the active RF plugins.
 
+Name the RF driver with `--rf-dev <driver>` (zmq, uhd, soapy, bladeRF, file)
+when more than one could open. Without it the binary probes every driver and
+keeps the first that answers, which on a machine with a USRP class device is
+that device even for a ZeroMQ loopback run. See docs/port-overview.md.
+
 ## Honest boundary
 
 This is a passive sniffer. It decodes the downlink and uplink control and data

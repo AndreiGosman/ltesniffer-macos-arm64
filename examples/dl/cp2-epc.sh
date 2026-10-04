@@ -21,7 +21,7 @@ for i in $(seq 1 40); do grep -q "S1Setup procedure completed successfully" "$LO
 sleep 1
 
 # LTESniffer: downlink mode, identity on.
-"$LTESNIFFER_BIN" -A 1 -a "rx_port=tcp://localhost:2201,id=sniffer,base_srate=11.52e6" \
+"$LTESNIFFER_BIN" -A 1 --rf-dev zmq -a "rx_port=tcp://localhost:2201,id=sniffer,base_srate=11.52e6" \
   -f 1815000000 -C -W 2 -z 0 -D "$RUNCFG/dci.csv" -E "$RUNCFG/stats.csv" > "$LOGS/dl-sniffer.log" 2>&1 & SN=$!
 sleep 2
 

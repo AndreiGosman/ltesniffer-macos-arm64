@@ -23,7 +23,7 @@ for i in $(seq 1 40); do grep -q "S1Setup procedure completed successfully" "$LO
 sleep 1
 
 # 4. LTESniffer: uplink mode, two RX channels (ch0 DL 2201, ch1 UL 2301), identity on.
-"$LTESNIFFER_BIN" -A 2 -m 1 -f 1815000000 -u 1720000000 \
+"$LTESNIFFER_BIN" -A 2 -m 1 --rf-dev zmq -f 1815000000 -u 1720000000 \
   -a "rx_port0=tcp://localhost:2201,rx_port1=tcp://localhost:2301,id=sniffer,base_srate=11.52e6" \
   -C -W 2 -z 0 -D "$RUNCFG/dci.csv" -E "$RUNCFG/stats.csv" > "$LOGS/ul-sniffer.log" 2>&1 & SN=$!
 sleep 2

@@ -20,7 +20,7 @@ for i in $(seq 1 30); do grep -q "Starting RX/TX thread" "$LOGS/dl-standalone-en
 sleep 2
 
 # LTESniffer as the sole consumer of srsenb's downlink.
-"$LTESNIFFER_BIN" -A 1 -a "rx_port=tcp://localhost:2000,id=sniffer,base_srate=11.52e6" \
+"$LTESNIFFER_BIN" -A 1 --rf-dev zmq -a "rx_port=tcp://localhost:2000,id=sniffer,base_srate=11.52e6" \
   -f 1815000000 -C -W 2 -D "$RUNCFG/dci.csv" -E "$RUNCFG/stats.csv" > "$LOGS/dl-standalone-sniffer.log" 2>&1 & SN=$!
 sleep 30
 

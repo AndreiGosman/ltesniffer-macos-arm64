@@ -1,7 +1,7 @@
 From c8dd50c4f6fab8bd8e1bc6da5fed655386e7e780 Mon Sep 17 00:00:00 2001
 From: Andrei Gosman <andrei.gosman@gmail.com>
 Date: Fri, 2 Oct 2026 18:10:00 +0300
-Subject: [PATCH 04/10] falcon: avoid C++ stdlib under extern "C" in
+Subject: [PATCH 04/11] falcon: avoid C++ stdlib under extern "C" in
  falcon_ue_dl.h
 
 The header wraps srsran/phy/ue/ue_dl.h in extern "C". Through srsran/phy/sync/

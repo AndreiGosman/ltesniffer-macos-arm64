@@ -39,6 +39,20 @@ library-only, C++17 configuration into the subproject and skips its tests and
 examples. There is no hardcoded path; the build fails fast if SRSRAN_SOURCE_DIR
 is not given, and scripts/install.sh passes the clone it made.
 
+## RF driver selection (--rf-dev)
+
+Upstream opens the radio with srsran_rf_open_multi, which is the srsRAN auto
+mode: it probes the RF drivers in order (UHD, SoapySDR, bladeRF, ZeroMQ, file)
+and keeps the first that opens. With a USRP class device connected, that is the
+device, whatever the device argument string says, so a ZeroMQ loopback run
+lands on real hardware, and on a machine with several SDRs the first one found
+wins. Patch 011 adds `--rf-dev <driver>`, which passes the name to
+srsran_rf_open_devname: that driver opens or the run fails, with no fallback to
+the next driver. The names are the ones srsRAN prints in its device list (zmq,
+uhd, soapy, bladeRF, file). Without the option the upstream behaviour stays.
+The loopback examples pass `--rf-dev zmq`. This is a robustness fix, not a
+Darwin one, and like patch 010 it is a candidate for upstream.
+
 ## What is left out
 
 The Qt GUI is not built. The UL/GPSDO measurement module is optional and off by

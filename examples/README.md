@@ -30,6 +30,10 @@ The SIM values in `cfg/user_db.csv` and the UE config are the standard srsRAN
 test credentials (IMSI 001010000000001, PLMN 001/01, the default test Ki and OPc).
 They are public test values.
 
+Every example passes `--rf-dev zmq` (patch 011), so the sniffer opens the ZeroMQ
+driver and no other. Without it the binary probes the drivers in order and a
+connected SDR would be opened in place of the loopback.
+
 ## Downlink
 
 - `dl/cp1b.sh`: no core, no UE. srsenb transmits the cell; LTESniffer decodes it.

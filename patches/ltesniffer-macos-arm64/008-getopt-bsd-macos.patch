@@ -1,7 +1,7 @@
 From 344773d1c5a8d1ba982bd4c02f22579f5ea66c38 Mon Sep 17 00:00:00 2001
 From: Andrei Gosman <andrei.gosman@gmail.com>
 Date: Fri, 2 Oct 2026 18:20:00 +0300
-Subject: [PATCH 08/10] args: fix option parsing for BSD/macOS getopt
+Subject: [PATCH 08/11] args: fix option parsing for BSD/macOS getopt
 
 The parser used a colonless getopt optstring and read each value with
 argv[optind] by hand. GNU getopt permutes argv, so the value lands where the
